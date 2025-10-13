@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,21 +15,11 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// Si la DB no existe o está vacía, ejecutar migración
-const needsMigration = !fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0;
-
-if (needsMigration) {
-  console.log('🔧 Base de datos no encontrada o vacía, ejecutando migración...\n');
-  try {
-    execSync('node scripts/migrate.js', { 
-      stdio: 'inherit',
-      cwd: path.join(__dirname, '..')
-    });
-    console.log('\n✅ Migración completada\n');
-  } catch (error) {
-    console.error('❌ Error en migración:', error.message);
-    process.exit(1);
-  }
+// Verificar DB
+if (!fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
+  console.log('⚠️  Base de datos no encontrada.');
+  console.log('💡 Railway debería haberla creado en el build step.');
+  console.log('🔄 Si ves este mensaje, ejecuta: npm run migrate\n');
 } else {
   console.log('✅ Base de datos encontrada\n');
 }

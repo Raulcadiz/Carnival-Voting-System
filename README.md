@@ -422,3 +422,6 @@ Si tienes problemas o preguntas:
 ---
 
 **¡Disfruta del Carnival Voting System! 🎉🎭**
+
+## ☕️ DONATE  
+**https://www.gofundme.com/f/creando-una-app-para-mejorar-la-vida-en-cadiz-y-mas-alla/donate**
