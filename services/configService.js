@@ -47,16 +47,27 @@ class ConfigService {
    */
   async set(key, value) {
     try {
-      await db.run(
-        `INSERT INTO config (key, value, updated_at) 
-         VALUES (?, ?, CURRENT_TIMESTAMP)
-         ON CONFLICT(key) 
-         DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP`,
-        [key, value, value]
-      );
+      // Primero verificar si existe
+      const existing = await db.get('SELECT id FROM config WHERE key = ?', [key]);
+      
+      if (existing) {
+        // UPDATE
+        await db.run(
+          'UPDATE config SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
+          [value, key]
+        );
+      } else {
+        // INSERT
+        await db.run(
+          'INSERT INTO config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+          [key, value]
+        );
+      }
+      
+      console.log(`✅ Config guardada: ${key} = ${value ? '***' : '(vacío)'}`);
       return true;
     } catch (error) {
-      console.error(`Error setting config ${key}:`, error);
+      console.error(`❌ Error setting config ${key}:`, error);
       return false;
     }
   }
@@ -67,7 +78,10 @@ class ConfigService {
   async setMultiple(configs) {
     try {
       for (const [key, value] of Object.entries(configs)) {
-        await this.set(key, value);
+        const success = await this.set(key, value);
+        if (!success) {
+          console.error(`Failed to set ${key}`);
+        }
       }
       return true;
     } catch (error) {
@@ -136,6 +150,8 @@ class ConfigService {
       updates.YOUTUBE_API_KEY = apiConfigs.youtube.key;
     }
 
+    console.log('🔄 Actualizando configuraciones:', Object.keys(updates));
+    
     return await this.setMultiple(updates);
   }
 
