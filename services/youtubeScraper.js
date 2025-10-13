@@ -1,9 +1,17 @@
 const axios = require('axios');
+const configService = require('./configService');
 
 class YouTubeScraper {
   constructor() {
-    this.apiKey = process.env.YOUTUBE_API_KEY;
+    this.apiKey = null;
     this.baseUrl = 'https://www.googleapis.com/youtube/v3';
+  }
+
+  /**
+   * Cargar API key desde la base de datos
+   */
+  async loadConfig() {
+    this.apiKey = await configService.get('YOUTUBE_API_KEY');
   }
 
   /**
@@ -43,8 +51,11 @@ class YouTubeScraper {
    * Obtiene información del video usando YouTube Data API v3
    */
   async scrapeVideo(url) {
+    // Cargar configuración desde DB
+    await this.loadConfig();
+
     if (!this.apiKey) {
-      throw new Error('API Key de YouTube no configurada');
+      throw new Error('API Key de YouTube no configurada. Por favor configúrala en el panel de administración.');
     }
 
     try {
@@ -101,8 +112,11 @@ class YouTubeScraper {
    * Busca videos por query
    */
   async searchVideos(query, maxResults = 10) {
+    // Cargar configuración desde DB
+    await this.loadConfig();
+
     if (!this.apiKey) {
-      throw new Error('API Key de YouTube no configurada');
+      throw new Error('API Key de YouTube no configurada. Por favor configúrala en el panel de administración.');
     }
 
     try {

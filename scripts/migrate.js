@@ -98,6 +98,23 @@ db.serialize(() => {
     }
   });
 
+  // Tabla de configuración (para APIs y settings)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT NOT NULL UNIQUE,
+      value TEXT,
+      description TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('❌ Error creando tabla config:', err.message);
+    } else {
+      console.log('✅ Tabla "config" creada');
+    }
+  });
+
   // Crear índices para optimización
   db.run('CREATE INDEX IF NOT EXISTS idx_votes_video_id ON votes(video_id)');
   db.run('CREATE INDEX IF NOT EXISTS idx_votes_user_ip ON votes(user_ip)');
@@ -121,6 +138,23 @@ db.serialize(() => {
   });
   stmt.finalize(() => {
     console.log('✅ Categorías por defecto insertadas');
+  });
+
+  // Insertar configuraciones por defecto desde .env
+  const defaultConfigs = [
+    { key: 'TIKTOK_API_KEY_1', value: process.env.TIKTOK_API_KEY_1 || '', description: 'TikTok API Key #1 (Principal)' },
+    { key: 'TIKTOK_API_HOST_1', value: process.env.TIKTOK_API_HOST_1 || 'tiktok-scraper7.p.rapidapi.com', description: 'TikTok API Host #1' },
+    { key: 'TIKTOK_API_KEY_2', value: process.env.TIKTOK_API_KEY_2 || '', description: 'TikTok API Key #2 (Backup)' },
+    { key: 'TIKTOK_API_HOST_2', value: process.env.TIKTOK_API_HOST_2 || 'tiktok-video-no-watermark2.p.rapidapi.com', description: 'TikTok API Host #2' },
+    { key: 'YOUTUBE_API_KEY', value: process.env.YOUTUBE_API_KEY || '', description: 'YouTube Data API v3 Key' }
+  ];
+
+  const configStmt = db.prepare('INSERT OR IGNORE INTO config (key, value, description) VALUES (?, ?, ?)');
+  defaultConfigs.forEach(cfg => {
+    configStmt.run(cfg.key, cfg.value, cfg.description);
+  });
+  configStmt.finalize(() => {
+    console.log('✅ Configuraciones por defecto insertadas');
   });
 });
 

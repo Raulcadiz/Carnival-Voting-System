@@ -63,6 +63,13 @@ const AdminAPI = {
     return this.request('/config');
   },
 
+  async updateConfig(apis) {
+    return this.request('/config', {
+      method: 'PUT',
+      body: JSON.stringify({ apis })
+    });
+  },
+
   async updateVideo(id, data) {
     return this.request(`/videos/${id}`, {
       method: 'PUT',
@@ -491,31 +498,17 @@ const AdminApp = {
       const response = await AdminAPI.getConfig();
       const config = response.config;
 
-      // APIs
-      const apiStatus = document.getElementById('admin-api-status');
-      apiStatus.innerHTML = `
-        <div class="api-status-item">
-          <div class="status-icon">${config.apis.tiktok1.configured ? '✅' : '❌'}</div>
-          <div class="status-info">
-            <h4>TikTok API #1</h4>
-            <p>${config.apis.tiktok1.host}</p>
-          </div>
-        </div>
-        <div class="api-status-item">
-          <div class="status-icon">${config.apis.tiktok2.configured ? '✅' : '❌'}</div>
-          <div class="status-info">
-            <h4>TikTok API #2</h4>
-            <p>${config.apis.tiktok2.host}</p>
-          </div>
-        </div>
-        <div class="api-status-item">
-          <div class="status-icon">${config.apis.youtube.configured ? '✅' : '❌'}</div>
-          <div class="status-info">
-            <h4>YouTube API</h4>
-            <p>${config.apis.youtube.configured ? 'Configurada' : 'No configurada'}</p>
-          </div>
-        </div>
-      `;
+      // Cargar valores de APIs en los inputs
+      document.getElementById('tiktok1-key').value = config.apis.tiktok1.key || '';
+      document.getElementById('tiktok1-host').value = config.apis.tiktok1.host || '';
+      document.getElementById('tiktok2-key').value = config.apis.tiktok2.key || '';
+      document.getElementById('tiktok2-host').value = config.apis.tiktok2.host || '';
+      document.getElementById('youtube-key').value = config.apis.youtube.key || '';
+
+      // Actualizar indicadores de estado
+      this.updateApiStatus('tiktok1', config.apis.tiktok1.configured);
+      this.updateApiStatus('tiktok2', config.apis.tiktok2.configured);
+      this.updateApiStatus('youtube', config.apis.youtube.configured);
 
       // Servidor
       document.getElementById('config-port').textContent = config.server.port;
@@ -523,8 +516,72 @@ const AdminApp = {
       document.getElementById('config-rate-limit').textContent = 
         `${config.security.rateLimitMax} requests / ${config.security.rateLimitWindow / 60000} minutos`;
 
+      // Setup form submit
+      const form = document.getElementById('api-config-form');
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        await this.saveApiConfig();
+      };
+
     } catch (error) {
       Utils.showToast('Error cargando configuración', 'error');
+    }
+  },
+
+  updateApiStatus(apiName, isConfigured) {
+    const statusElement = document.getElementById(`${apiName}-status`);
+    const dot = statusElement.querySelector('.status-dot');
+    const text = statusElement.querySelector('.status-text');
+
+    if (isConfigured) {
+      dot.classList.add('active');
+      text.textContent = '✅ Configurada y activa';
+      text.style.color = 'var(--success)';
+    } else {
+      dot.classList.remove('active');
+      text.textContent = '❌ No configurada';
+      text.style.color = 'var(--error)';
+    }
+  },
+
+  async saveApiConfig() {
+    try {
+      const apis = {
+        tiktok1: {
+          key: document.getElementById('tiktok1-key').value.trim(),
+          host: document.getElementById('tiktok1-host').value.trim()
+        },
+        tiktok2: {
+          key: document.getElementById('tiktok2-key').value.trim(),
+          host: document.getElementById('tiktok2-host').value.trim()
+        },
+        youtube: {
+          key: document.getElementById('youtube-key').value.trim()
+        }
+      };
+
+      // Validar que al menos una API esté configurada
+      if (!apis.tiktok1.key && !apis.tiktok2.key && !apis.youtube.key) {
+        Utils.showToast('Debes configurar al menos una API', 'warning');
+        return;
+      }
+
+      const response = await AdminAPI.updateConfig(apis);
+
+      Utils.showToast('✅ Configuración guardada exitosamente', 'success');
+
+      // Actualizar indicadores
+      this.updateApiStatus('tiktok1', !!apis.tiktok1.key);
+      this.updateApiStatus('tiktok2', !!apis.tiktok2.key);
+      this.updateApiStatus('youtube', !!apis.youtube.key);
+
+      // Recargar configuración
+      setTimeout(() => {
+        this.loadConfig();
+      }, 1000);
+
+    } catch (error) {
+      Utils.showToast(error.message || 'Error guardando configuración', 'error');
     }
   },
 

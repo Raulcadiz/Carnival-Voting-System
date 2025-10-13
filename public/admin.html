@@ -194,12 +194,91 @@
                     <h2 class="admin-section-title">⚙️ Configuración del Sistema</h2>
                     
                     <div class="config-section">
-                        <h3>🔑 APIs Configuradas</h3>
-                        <div class="config-grid" id="admin-api-status">
-                            <!-- Se llenará dinámicamente -->
-                        </div>
-                        <div class="config-alert">
-                            <strong>ℹ️ Nota:</strong> Para cambiar las API keys, edita el archivo <code>.env</code> y reinicia el servidor.
+                        <h3>🔑 Configuración de APIs</h3>
+                        <form id="api-config-form" class="api-config-form">
+                            <!-- TikTok API 1 -->
+                            <div class="api-config-group">
+                                <h4>🎵 TikTok API #1 (Principal)</h4>
+                                <div class="form-group">
+                                    <label for="tiktok1-key">API Key:</label>
+                                    <input 
+                                        type="text" 
+                                        id="tiktok1-key" 
+                                        class="form-input"
+                                        placeholder="Ingresa tu API Key de RapidAPI"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label for="tiktok1-host">API Host:</label>
+                                    <input 
+                                        type="text" 
+                                        id="tiktok1-host" 
+                                        class="form-input"
+                                        placeholder="tiktok-scraper7.p.rapidapi.com"
+                                    >
+                                </div>
+                                <div class="api-status-indicator" id="tiktok1-status">
+                                    <span class="status-dot"></span>
+                                    <span class="status-text">No configurada</span>
+                                </div>
+                            </div>
+
+                            <!-- TikTok API 2 -->
+                            <div class="api-config-group">
+                                <h4>🎵 TikTok API #2 (Backup)</h4>
+                                <div class="form-group">
+                                    <label for="tiktok2-key">API Key:</label>
+                                    <input 
+                                        type="text" 
+                                        id="tiktok2-key" 
+                                        class="form-input"
+                                        placeholder="Ingresa tu API Key de RapidAPI (Backup)"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label for="tiktok2-host">API Host:</label>
+                                    <input 
+                                        type="text" 
+                                        id="tiktok2-host" 
+                                        class="form-input"
+                                        placeholder="tiktok-video-no-watermark2.p.rapidapi.com"
+                                    >
+                                </div>
+                                <div class="api-status-indicator" id="tiktok2-status">
+                                    <span class="status-dot"></span>
+                                    <span class="status-text">No configurada</span>
+                                </div>
+                            </div>
+
+                            <!-- YouTube API -->
+                            <div class="api-config-group">
+                                <h4>▶️ YouTube Data API v3</h4>
+                                <div class="form-group">
+                                    <label for="youtube-key">API Key:</label>
+                                    <input 
+                                        type="text" 
+                                        id="youtube-key" 
+                                        class="form-input"
+                                        placeholder="Ingresa tu YouTube API Key de Google Cloud"
+                                    >
+                                </div>
+                                <div class="api-status-indicator" id="youtube-status">
+                                    <span class="status-dot"></span>
+                                    <span class="status-text">No configurada</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary btn-large">
+                                💾 Guardar Configuración
+                            </button>
+                        </form>
+
+                        <div class="config-alert" style="margin-top: 1rem;">
+                            <strong>ℹ️ Cómo obtener las API Keys:</strong>
+                            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                <li><strong>TikTok:</strong> <a href="https://rapidapi.com/" target="_blank" style="color: var(--gold);">RapidAPI</a> → Busca "TikTok Scraper"</li>
+                                <li><strong>YouTube:</strong> <a href="https://console.cloud.google.com/" target="_blank" style="color: var(--gold);">Google Cloud Console</a> → Habilita YouTube Data API v3</li>
+                            </ul>
                         </div>
                     </div>
 

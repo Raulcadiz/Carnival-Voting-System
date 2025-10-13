@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const configService = require('../services/configService');
 const { authMiddleware, generateToken, verifyAdminCredentials } = require('../middleware/auth');
 
 /**
@@ -207,18 +208,23 @@ router.post('/videos/bulk-delete', authMiddleware, async (req, res) => {
  */
 router.get('/config', authMiddleware, async (req, res) => {
   try {
+    const apiConfigs = await configService.getApiConfigs();
+
     const config = {
       apis: {
         tiktok1: {
-          configured: !!process.env.TIKTOK_API_KEY_1,
-          host: process.env.TIKTOK_API_HOST_1 || 'No configurado'
+          key: apiConfigs.tiktok1.key,
+          host: apiConfigs.tiktok1.host,
+          configured: apiConfigs.tiktok1.configured
         },
         tiktok2: {
-          configured: !!process.env.TIKTOK_API_KEY_2,
-          host: process.env.TIKTOK_API_HOST_2 || 'No configurado'
+          key: apiConfigs.tiktok2.key,
+          host: apiConfigs.tiktok2.host,
+          configured: apiConfigs.tiktok2.configured
         },
         youtube: {
-          configured: !!process.env.YOUTUBE_API_KEY
+          key: apiConfigs.youtube.key,
+          configured: apiConfigs.youtube.configured
         }
       },
       server: {
@@ -243,30 +249,31 @@ router.get('/config', authMiddleware, async (req, res) => {
 });
 
 /**
- * PUT /api/admin/config - Actualizar configuración (requiere reinicio)
+ * PUT /api/admin/config - Actualizar configuración de APIs
  */
 router.put('/config', authMiddleware, async (req, res) => {
   try {
-    const { apiKeys } = req.body;
+    const { apis } = req.body;
 
-    // NOTA: En producción, esto requeriría escribir al archivo .env
-    // y reiniciar el servidor. Por simplicidad, solo validamos aquí.
-    
-    const warnings = [];
-    
-    if (!apiKeys?.tiktok1 && !apiKeys?.tiktok2) {
-      warnings.push('Se recomienda configurar al menos una API de TikTok');
+    if (!apis) {
+      return res.status(400).json({ error: 'Configuración de APIs requerida' });
     }
-    
-    if (!apiKeys?.youtube) {
-      warnings.push('Se recomienda configurar la API de YouTube');
+
+    // Actualizar configuraciones en la base de datos
+    const success = await configService.updateApiConfigs(apis);
+
+    if (!success) {
+      return res.status(500).json({ error: 'Error guardando configuración' });
     }
+
+    // Obtener configuración actualizada
+    const updatedConfig = await configService.getApiConfigs();
 
     res.json({
       success: true,
-      message: 'Configuración validada. Para aplicar cambios, edita el archivo .env y reinicia el servidor.',
-      warnings,
-      note: 'La actualización dinámica de .env estará disponible próximamente'
+      message: 'Configuración actualizada exitosamente',
+      config: updatedConfig,
+      note: 'Los cambios se aplicarán inmediatamente en las próximas solicitudes'
     });
 
   } catch (error) {

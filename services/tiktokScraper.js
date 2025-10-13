@@ -1,17 +1,30 @@
 const axios = require('axios');
+const configService = require('./configService');
 
 class TikTokScraper {
   constructor() {
-    // API Principal
+    // Las APIs ahora se cargan dinámicamente desde la DB
+    this.api1 = { key: null, host: null };
+    this.api2 = { key: null, host: null };
+  }
+
+  /**
+   * Cargar configuración de APIs desde la base de datos
+   */
+  async loadConfig() {
+    const api1Key = await configService.get('TIKTOK_API_KEY_1');
+    const api1Host = await configService.get('TIKTOK_API_HOST_1');
+    const api2Key = await configService.get('TIKTOK_API_KEY_2');
+    const api2Host = await configService.get('TIKTOK_API_HOST_2');
+
     this.api1 = {
-      key: process.env.TIKTOK_API_KEY_1,
-      host: process.env.TIKTOK_API_HOST_1 || 'tiktok-scraper7.p.rapidapi.com'
+      key: api1Key,
+      host: api1Host || 'tiktok-scraper7.p.rapidapi.com'
     };
 
-    // API Backup
     this.api2 = {
-      key: process.env.TIKTOK_API_KEY_2,
-      host: process.env.TIKTOK_API_HOST_2 || 'tiktok-video-no-watermark2.p.rapidapi.com'
+      key: api2Key,
+      host: api2Host || 'tiktok-video-no-watermark2.p.rapidapi.com'
     };
   }
 
@@ -108,8 +121,11 @@ class TikTokScraper {
    * Método principal con fallback automático
    */
   async scrapeVideo(url) {
+    // Cargar configuración desde DB
+    await this.loadConfig();
+
     if (!this.api1.key && !this.api2.key) {
-      throw new Error('No hay APIs de TikTok configuradas');
+      throw new Error('No hay APIs de TikTok configuradas. Por favor configúralas en el panel de administración.');
     }
 
     const videoId = this.extractVideoId(url);
