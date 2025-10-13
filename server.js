@@ -116,14 +116,16 @@ app.use((err, req, res, next) => {
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
-app.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
   console.log(`
 ╔════════════════════════════════════════════╗
 ║   🎭 CARNIVAL VOTING SYSTEM - ACTIVO 🎭   ║
 ╚════════════════════════════════════════════╝
 
-🌐 Servidor corriendo en: http://localhost:${PORT}
-📊 API disponible en: http://localhost:${PORT}/api
+🌐 Servidor corriendo en: http://${HOST}:${PORT}
+📊 API disponible en: http://${HOST}:${PORT}/api
 🔒 Seguridad: ${process.env.NODE_ENV === 'production' ? 'PRODUCCIÓN' : 'DESARROLLO'}
 ⏰ Iniciado: ${new Date().toLocaleString('es-ES')}
 
