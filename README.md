@@ -1,4 +1,4 @@
-# 🎭 Carnival Voting System
+# 🎭 La Risa Eterna del Carnaval 🎭
 
 Sistema profesional de votación para videos de TikTok y YouTube con diseño temático de Carnaval, gráficos interactivos y arquitectura robusta.
 
