@@ -1,6 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 
 // Crear directorio de base de datos si no existe
 const dbDir = path.join(__dirname, '..', 'database');
@@ -9,6 +10,9 @@ if (!fs.existsSync(dbDir)) {
 }
 
 const dbPath = path.join(dbDir, 'carnival.db');
+
+console.log('🔧 Iniciando migración de base de datos...');
+console.log('📁 Ruta DB:', dbPath);
 
 // Conectar a la base de datos
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -140,7 +144,9 @@ db.serialize(() => {
     console.log('✅ Categorías por defecto insertadas');
   });
 
-  // Insertar configuraciones por defecto desde .env
+  // Insertar/actualizar configuraciones por defecto desde .env
+  console.log('\n🔑 Importando configuraciones desde .env...');
+  
   const defaultConfigs = [
     { key: 'TIKTOK_API_KEY_1', value: process.env.TIKTOK_API_KEY_1 || '', description: 'TikTok API Key #1 (Principal)' },
     { key: 'TIKTOK_API_HOST_1', value: process.env.TIKTOK_API_HOST_1 || 'tiktok-scraper7.p.rapidapi.com', description: 'TikTok API Host #1' },
@@ -149,12 +155,15 @@ db.serialize(() => {
     { key: 'YOUTUBE_API_KEY', value: process.env.YOUTUBE_API_KEY || '', description: 'YouTube Data API v3 Key' }
   ];
 
-  const configStmt = db.prepare('INSERT OR IGNORE INTO config (key, value, description) VALUES (?, ?, ?)');
+  const configStmt = db.prepare('INSERT OR REPLACE INTO config (key, value, description, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)');
   defaultConfigs.forEach(cfg => {
     configStmt.run(cfg.key, cfg.value, cfg.description);
+    const status = cfg.value ? '✅ Configurada' : '⚠️  Vacía';
+    console.log(`   ${status}: ${cfg.key}`);
   });
   configStmt.finalize(() => {
-    console.log('✅ Configuraciones por defecto insertadas');
+    console.log('✅ Configuraciones importadas desde .env');
+    console.log('\n💡 Ahora puedes editarlas desde el panel admin sin reiniciar');
   });
 });
 
@@ -162,7 +171,8 @@ db.close((err) => {
   if (err) {
     console.error('❌ Error cerrando base de datos:', err.message);
   } else {
-    console.log('🎉 Base de datos configurada exitosamente');
+    console.log('\n🎉 Base de datos configurada exitosamente');
     console.log('📁 Ubicación:', dbPath);
+    console.log('\n🚀 Siguiente paso: npm start');
   }
 });
