@@ -9,3 +9,9 @@ cmds = ['npm run migrate']
 
 [start]
 cmd = 'node server.js'
+
+[health]
+path = '/api/health'
+interval = 10
+timeout = 5
+retries = 3

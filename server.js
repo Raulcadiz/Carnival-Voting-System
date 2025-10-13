@@ -118,7 +118,7 @@ app.use((err, req, res, next) => {
 // ============================================
 const HOST = process.env.HOST || '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`
 ╔════════════════════════════════════════════╗
 ║   🎭 CARNIVAL VOTING SYSTEM - ACTIVO 🎭   ║
@@ -144,6 +144,20 @@ app.listen(PORT, HOST, () => {
 
 💡 TIP: Abre http://localhost:${PORT} en tu navegador
   `);
+  
+  // Log específico para Railway
+  console.log(`Server listening on ${HOST}:${PORT}`);
+});
+
+// Manejo de errores del servidor
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Puerto ${PORT} ya está en uso`);
+    process.exit(1);
+  } else {
+    console.error('❌ Error del servidor:', error);
+    process.exit(1);
+  }
 });
 
 // Manejo de cierre graceful
