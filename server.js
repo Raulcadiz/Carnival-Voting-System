@@ -80,13 +80,28 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Ruta de health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Verificar conexión a la base de datos
+    const db = require('./config/database');
+    await db.get('SELECT 1');
+    
+    res.status(200).json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      database: 'connected'
+    });
+  } catch (error) {
+    console.error('Healthcheck failed:', error);
+    res.status(503).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: 'Database not ready',
+      database: 'disconnected'
+    });
+  }
 });
 
 // ============================================
@@ -118,8 +133,17 @@ app.use((err, req, res, next) => {
 // ============================================
 const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(`
+// Verificar conexión a la base de datos antes de iniciar
+const db = require('./config/database');
+
+async function startServer() {
+  try {
+    // Test de conexión a la base de datos
+    await db.get('SELECT 1');
+    console.log('✅ Conectado a la base de datos SQLite');
+    
+    const server = app.listen(PORT, HOST, () => {
+      console.log(`
 ╔════════════════════════════════════════════╗
 ║   🎭 CARNIVAL VOTING SYSTEM - ACTIVO 🎭   ║
 ╚════════════════════════════════════════════╝
@@ -144,21 +168,31 @@ const server = app.listen(PORT, HOST, () => {
 
 💡 TIP: Abre http://localhost:${PORT} en tu navegador
   `);
-  
-  // Log específico para Railway
-  console.log(`Server listening on ${HOST}:${PORT}`);
-});
+      
+      // Log específico para Railway
+      console.log(`Server listening on ${HOST}:${PORT}`);
+    });
 
-// Manejo de errores del servidor
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Puerto ${PORT} ya está en uso`);
-    process.exit(1);
-  } else {
-    console.error('❌ Error del servidor:', error);
+    // Manejo de errores del servidor
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Puerto ${PORT} ya está en uso`);
+        process.exit(1);
+      } else {
+        console.error('❌ Error del servidor:', error);
+        process.exit(1);
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error conectando a la base de datos:', error);
+    console.error('💡 Asegúrate de ejecutar: npm run migrate');
     process.exit(1);
   }
-});
+}
+
+// Iniciar servidor
+startServer();
 
 // Manejo de cierre graceful
 process.on('SIGINT', () => {
