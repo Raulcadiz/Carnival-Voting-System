@@ -1,0 +1,14 @@
+node_modules/
+*.log
+.env
+.env.local
+database/*.db
+database/*.db-journal
+.git/
+.DS_Store
+*.swp
+*.swo
+tmp/
+temp/
+.vscode/
+.idea/

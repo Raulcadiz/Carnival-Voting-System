@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Panel de Administración - Carnival Voting</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1 class="login-logo">🔐</h1>
+                <h2 class="login-title">Panel de Administración</h2>
+                <p class="login-subtitle">Carnival Voting System</p>
+            </div>
+            
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="username" class="form-label">Usuario</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username"
+                        class="form-input" 
+                        placeholder="admin"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password"
+                        class="form-input" 
+                        placeholder="••••••••"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+                
+                <button type="submit" class="btn-login">
+                    <span class="btn-text">🚀 Iniciar Sesión</span>
+                    <span class="btn-loader" style="display: none;">⏳ Verificando...</span>
+                </button>
+                
+                <div id="login-error" class="login-error" style="display: none;"></div>
+            </form>
+            
+            <div class="login-footer">
+                <p>Credenciales por defecto:</p>
+                <code>admin / carnival2025</code>
+                <br><br>
+                <a href="index.html" class="back-link">← Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" class="admin-dashboard" style="display: none;">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="container">
+                <div class="admin-header-content">
+                    <h1 class="admin-logo">
+                        🔐 Panel Admin
+                    </h1>
+                    <div class="admin-user">
+                        <span id="admin-username">Admin</span>
+                        <button class="btn-logout" onclick="AdminApp.logout()">
+                            🚪 Salir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="admin-nav">
+            <div class="container">
+                <button class="admin-nav-btn active" data-view="overview">📊 Resumen</button>
+                <button class="admin-nav-btn" data-view="videos">🎬 Videos</button>
+                <button class="admin-nav-btn" data-view="config">⚙️ Configuración</button>
+                <button class="admin-nav-btn" data-view="logs">📝 Logs</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <div class="container">
+                <!-- Vista: Overview -->
+                <section id="admin-view-overview" class="admin-view active">
+                    <h2 class="admin-section-title">📊 Resumen General</h2>
+                    
+                    <div class="admin-stats-grid">
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">🎬</div>
+                            <div class="stat-info">
+                                <div class="stat-label">Total Videos</div>
+                                <div class="stat-value" id="admin-stat-videos">0</div>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">❤️</div>
+                            <div class="stat-info">
+                                <div class="stat-label">Total Votos</div>
+                                <div class="stat-value" id="admin-stat-votes">0</div>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-info">
+                                <div class="stat-label">Votantes Únicos</div>
+                                <div class="stat-value" id="admin-stat-voters">0</div>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">🔥</div>
+                            <div class="stat-info">
+                                <div class="stat-label">API Status</div>
+                                <div class="stat-value" id="admin-stat-apis">
+                                    <span class="api-status">✅ Activas</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="admin-charts-grid">
+                        <div class="admin-chart-card">
+                            <h3>📊 Videos por Plataforma</h3>
+                            <canvas id="admin-chart-platform"></canvas>
+                        </div>
+                        <div class="admin-chart-card">
+                            <h3>⏰ Votos por Hora</h3>
+                            <canvas id="admin-chart-hours"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>🏆 Top Votantes</h3>
+                        <div id="admin-top-voters" class="admin-table-container"></div>
+                    </div>
+                </section>
+
+                <!-- Vista: Videos -->
+                <section id="admin-view-videos" class="admin-view">
+                    <div class="admin-section-header">
+                        <h2 class="admin-section-title">🎬 Gestión de Videos</h2>
+                        <button class="btn-danger" onclick="AdminApp.bulkDeleteConfirm()">
+                            🗑️ Eliminar Seleccionados
+                        </button>
+                    </div>
+                    
+                    <div class="admin-table-container">
+                        <table class="admin-table" id="admin-videos-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-videos"></th>
+                                    <th>ID</th>
+                                    <th>Plataforma</th>
+                                    <th>Título</th>
+                                    <th>Usuario</th>
+                                    <th>Votos</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-videos-tbody">
+                                <tr>
+                                    <td colspan="8" class="table-loading">⏳ Cargando videos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Vista: Configuración -->
+                <section id="admin-view-config" class="admin-view">
+                    <h2 class="admin-section-title">⚙️ Configuración del Sistema</h2>
+                    
+                    <div class="config-section">
+                        <h3>🔑 APIs Configuradas</h3>
+                        <div class="config-grid" id="admin-api-status">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        <div class="config-alert">
+                            <strong>ℹ️ Nota:</strong> Para cambiar las API keys, edita el archivo <code>.env</code> y reinicia el servidor.
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>🛡️ Seguridad</h3>
+                        <div class="config-item">
+                            <label>Rate Limit:</label>
+                            <span id="config-rate-limit">Cargando...</span>
+                        </div>
+                        <div class="config-item">
+                            <label>JWT Secret:</label>
+                            <span>••••••••••••</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>🌐 Servidor</h3>
+                        <div class="config-item">
+                            <label>Puerto:</label>
+                            <span id="config-port">Cargando...</span>
+                        </div>
+                        <div class="config-item">
+                            <label>Entorno:</label>
+                            <span id="config-env">Cargando...</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>💾 Base de Datos</h3>
+                        <div class="config-actions">
+                            <button class="btn-warning" onclick="AdminApp.confirmAction('backup', 'Crear backup de la base de datos')">
+                                💾 Crear Backup
+                            </button>
+                            <button class="btn-danger" onclick="AdminApp.confirmAction('clear-votes', 'Eliminar TODOS los votos')">
+                                🗑️ Limpiar Votos
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Vista: Logs -->
+                <section id="admin-view-logs" class="admin-view">
+                    <div class="admin-section-header">
+                        <h2 class="admin-section-title">📝 Registro de Actividad</h2>
+                        <button class="btn-primary" onclick="AdminApp.loadLogs()">
+                            🔄 Actualizar
+                        </button>
+                    </div>
+                    
+                    <div id="admin-logs-container" class="logs-container">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Edición -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="AdminApp.closeEditModal()">&times;</span>
+            <h2>✏️ Editar Video</h2>
+            <form id="edit-video-form" class="edit-form">
+                <input type="hidden" id="edit-video-id">
+                
+                <div class="form-group">
+                    <label for="edit-title">Título</label>
+                    <input type="text" id="edit-title" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-username">Usuario</label>
+                    <input type="text" id="edit-username" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-description">Descripción</label>
+                    <textarea id="edit-description" class="form-input" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary">💾 Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

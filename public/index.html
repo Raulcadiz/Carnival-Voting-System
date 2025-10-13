@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 Carnival Voting System</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🎭</span>
+                    Carnival Voting
+                </h1>
+                <nav class="nav">
+                    <button class="nav-btn active" data-view="videos">
+                        📹 Videos
+                    </button>
+                    <button class="nav-btn" data-view="ranking">
+                        🏆 Ranking
+                    </button>
+                    <button class="nav-btn" data-view="stats">
+                        📊 Estadísticas
+                    </button>
+                    <button class="nav-btn" data-view="add">
+                        ➕ Agregar Video
+                    </button>
+                    <a href="admin.html" class="nav-btn" style="text-decoration:none;">
+                        🔐 Admin
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- View: Videos Grid -->
+            <section id="view-videos" class="view active">
+                <div class="section-header">
+                    <h2 class="section-title">🎬 Todos los Videos</h2>
+                    <div class="controls">
+                        <select id="filter-platform" class="control-select">
+                            <option value="">Todas las plataformas</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                        </select>
+                        <select id="sort-by" class="control-select">
+                            <option value="votes">Más votados</option>
+                            <option value="recent">Más recientes</option>
+                            <option value="views">Más vistos</option>
+                        </select>
+                        <input type="text" id="search-input" class="control-input" placeholder="🔍 Buscar...">
+                    </div>
+                </div>
+                
+                <div id="videos-grid" class="videos-grid">
+                    <!-- Videos se cargarán aquí dinámicamente -->
+                    <div class="loader">🎭 Cargando videos...</div>
+                </div>
+            </section>
+
+            <!-- View: Ranking -->
+            <section id="view-ranking" class="view">
+                <div class="section-header">
+                    <h2 class="section-title">🏆 Top 10 Videos</h2>
+                </div>
+                
+                <div id="ranking-container" class="ranking-container">
+                    <!-- Ranking se cargará aquí -->
+                </div>
+            </section>
+
+            <!-- View: Statistics -->
+            <section id="view-stats" class="view">
+                <div class="section-header">
+                    <h2 class="section-title">📊 Dashboard de Estadísticas</h2>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎬</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Videos</div>
+                            <div class="stat-value" id="stat-videos">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">❤️</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Votos</div>
+                            <div class="stat-value" id="stat-votes">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Votantes Únicos</div>
+                            <div class="stat-value" id="stat-voters">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-info">
+                            <div class="stat-label">En Tendencia</div>
+                            <div class="stat-value" id="stat-trending">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3 class="chart-title">📊 Top 10 Videos por Votos</h3>
+                        <canvas id="chart-top-videos"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">📈 Votos por Día (Última Semana)</h3>
+                        <canvas id="chart-votes-timeline"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">🎭 Videos por Plataforma</h3>
+                        <canvas id="chart-platform-distribution"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">🔥 Trending (Últimas 24h)</h3>
+                        <canvas id="chart-trending"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Add Video -->
+            <section id="view-add" class="view">
+                <div class="section-header">
+                    <h2 class="section-title">➕ Agregar Nuevo Video</h2>
+                </div>
+
+                <div class="add-form-container">
+                    <form id="add-video-form" class="add-form">
+                        <div class="form-group">
+                            <label for="video-url" class="form-label">
+                                🔗 URL del Video (TikTok o YouTube)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="video-url" 
+                                name="url"
+                                class="form-input" 
+                                placeholder="https://www.tiktok.com/@user/video/123456789..."
+                                required
+                            >
+                            <small class="form-hint">
+                                Pega la URL completa del video de TikTok o YouTube
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn-submit">
+                            <span class="btn-text">🚀 Agregar Video</span>
+                            <span class="btn-loader" style="display: none;">⏳ Procesando...</span>
+                        </button>
+                    </form>
+
+                    <div id="add-result" class="add-result" style="display: none;"></div>
+
+                    <div class="add-info">
+                        <h3>💡 Instrucciones:</h3>
+                        <ul>
+                            <li>✅ Copia la URL completa del video</li>
+                            <li>✅ Funciona con TikTok y YouTube</li>
+                            <li>✅ El sistema extraerá automáticamente título, autor y thumbnail</li>
+                            <li>⚠️ No se pueden agregar videos duplicados</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>🎭 Carnival Voting System 2025 | Hecho con ❤️ y mucho código</p>
+        </div>
+    </footer>
+
+    <!-- Modal for Video Details -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
