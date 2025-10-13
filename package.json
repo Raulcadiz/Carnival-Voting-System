@@ -4,7 +4,8 @@
   "description": "Sistema profesional de votación de videos con TikTok/YouTube scraping",
   "main": "server.js",
   "scripts": {
-    "start": "node scripts/init.js",
+    "start": "node server.js",
+    "build": "node scripts/migrate.js",
     "dev": "nodemon server.js",
     "setup": "node scripts/setup.js",
     "migrate": "node scripts/migrate.js",
