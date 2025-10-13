@@ -104,99 +104,139 @@ const AdminAPI = {
 const AdminApp = {
   currentView: 'overview',
   selectedVideos: new Set(),
+  isInitialized: false,
 
   async init() {
+    if (this.isInitialized) {
+      return;
+    }
+
     const token = localStorage.getItem('admin_token');
 
     if (token) {
       AdminAPI.setToken(token);
       try {
-        await this.loadDashboard();
+        await AdminAPI.getStats();
+        this.showDashboard();
+        await this.loadOverview();
       } catch (error) {
+        AdminAPI.clearToken();
         this.showLogin();
       }
     } else {
       this.showLogin();
     }
+
+    this.isInitialized = true;
   },
 
   showLogin() {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('admin-dashboard').style.display = 'none';
+    const loginScreen = document.getElementById('login-screen');
+    const dashboard = document.getElementById('admin-dashboard');
+    
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (dashboard) dashboard.style.display = 'none';
+    
     this.setupLoginForm();
   },
 
   showDashboard() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-dashboard').style.display = 'block';
-    this.setupNavigation();
-    this.loadDashboard();
+    const loginScreen = document.getElementById('login-screen');
+    const dashboard = document.getElementById('admin-dashboard');
+    
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (dashboard) dashboard.style.display = 'block';
+    
+    if (!this._navSetup) {
+      this.setupNavigation();
+      this._navSetup = true;
+    }
   },
 
   setupLoginForm() {
     const form = document.getElementById('login-form');
-    form.addEventListener('submit', async (e) => {
+    if (!form) return;
+
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    newForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.handleLogin();
     });
   },
 
   async handleLogin() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const username = document.getElementById('username')?.value;
+    const password = document.getElementById('password')?.value;
     const errorDiv = document.getElementById('login-error');
     const btn = document.querySelector('.btn-login');
-    const btnText = btn.querySelector('.btn-text');
-    const btnLoader = btn.querySelector('.btn-loader');
+    const btnText = btn?.querySelector('.btn-text');
+    const btnLoader = btn?.querySelector('.btn-loader');
+
+    if (!username || !password) {
+      if (errorDiv) {
+        errorDiv.textContent = 'Usuario y contraseña requeridos';
+        errorDiv.style.display = 'block';
+      }
+      return;
+    }
 
     try {
-      btn.disabled = true;
-      btnText.style.display = 'none';
-      btnLoader.style.display = 'inline';
-      errorDiv.style.display = 'none';
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.style.display = 'none';
+      if (btnLoader) btnLoader.style.display = 'inline';
+      if (errorDiv) errorDiv.style.display = 'none';
 
       const response = await AdminAPI.login(username, password);
       AdminAPI.setToken(response.token);
       
-      document.getElementById('admin-username').textContent = response.username;
+      const usernameElement = document.getElementById('admin-username');
+      if (usernameElement) usernameElement.textContent = response.username;
+
       this.showDashboard();
+      await this.loadOverview();
 
     } catch (error) {
-      errorDiv.textContent = error.message;
-      errorDiv.style.display = 'block';
+      if (errorDiv) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+      }
     } finally {
-      btn.disabled = false;
-      btnText.style.display = 'inline';
-      btnLoader.style.display = 'none';
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.style.display = 'inline';
+      if (btnLoader) btnLoader.style.display = 'none';
     }
   },
 
   logout() {
     if (confirm('¿Seguro que deseas cerrar sesión?')) {
       AdminAPI.clearToken();
-      this.showLogin();
+      this.isInitialized = false;
+      this._navSetup = false;
+      location.reload();
     }
   },
 
   setupNavigation() {
     document.querySelectorAll('.admin-nav-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const view = e.target.dataset.view;
-        this.switchView(view);
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      
+      newBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const view = e.currentTarget.dataset.view;
+        if (view) this.switchView(view);
       });
     });
   },
 
   switchView(viewName) {
-    // Actualizar botones
     document.querySelectorAll('.admin-nav-btn').forEach(btn => {
       btn.classList.remove('active');
-      if (btn.dataset.view === viewName) {
-        btn.classList.add('active');
-      }
+      if (btn.dataset.view === viewName) btn.classList.add('active');
     });
 
-    // Actualizar vistas
     document.querySelectorAll('.admin-view').forEach(view => {
       view.classList.remove('active');
     });
@@ -207,26 +247,20 @@ const AdminApp = {
       this.currentView = viewName;
     }
 
-    // Cargar datos según vista
-    switch(viewName) {
-      case 'overview':
-        this.loadOverview();
-        break;
-      case 'videos':
-        this.loadVideos();
-        break;
-      case 'config':
-        this.loadConfig();
-        break;
-      case 'logs':
-        this.loadLogs();
-        break;
-    }
+    this.loadViewData(viewName);
   },
 
-  async loadDashboard() {
-    this.showDashboard();
-    await this.loadOverview();
+  async loadViewData(viewName) {
+    try {
+      switch(viewName) {
+        case 'overview': await this.loadOverview(); break;
+        case 'videos': await this.loadVideos(); break;
+        case 'config': await this.loadConfig(); break;
+        case 'logs': await this.loadLogs(); break;
+      }
+    } catch (error) {
+      console.error(`Error loading ${viewName}:`, error);
+    }
   },
 
   async loadOverview() {
@@ -234,33 +268,28 @@ const AdminApp = {
       const response = await AdminAPI.getStats();
       const stats = response.stats;
 
-      // Actualizar cards
-      document.getElementById('admin-stat-videos').textContent = stats.videos.count;
-      document.getElementById('admin-stat-votes').textContent = stats.votes.count;
-      document.getElementById('admin-stat-voters').textContent = stats.uniqueVoters.count;
+      const videosStat = document.getElementById('admin-stat-videos');
+      const votesStat = document.getElementById('admin-stat-votes');
+      const votersStat = document.getElementById('admin-stat-voters');
 
-      // Gráfico de plataformas
-      this.createPlatformChart(stats.byPlatform);
+      if (videosStat) videosStat.textContent = stats.videos.count;
+      if (votesStat) votesStat.textContent = stats.votes.count;
+      if (votersStat) votersStat.textContent = stats.uniqueVoters.count;
 
-      // Gráfico de horas
-      this.createHoursChart(stats.votesByHour);
-
-      // Top votantes
-      this.renderTopVoters(stats.topVoters);
+      if (stats.byPlatform) this.createPlatformChart(stats.byPlatform);
+      if (stats.votesByHour) this.createHoursChart(stats.votesByHour);
+      if (stats.topVoters) this.renderTopVoters(stats.topVoters);
 
     } catch (error) {
       console.error('Error loading overview:', error);
-      Utils.showToast('Error cargando estadísticas', 'error');
     }
   },
 
   createPlatformChart(data) {
     const ctx = document.getElementById('admin-chart-platform');
-    if (!ctx) return;
+    if (!ctx || typeof Chart === 'undefined') return;
 
-    if (window.adminPlatformChart) {
-      window.adminPlatformChart.destroy();
-    }
+    if (window.adminPlatformChart) window.adminPlatformChart.destroy();
 
     window.adminPlatformChart = new Chart(ctx, {
       type: 'doughnut',
@@ -275,22 +304,16 @@ const AdminApp = {
       },
       options: {
         responsive: true,
-        plugins: {
-          legend: {
-            labels: { color: '#f5f5f5' }
-          }
-        }
+        plugins: { legend: { labels: { color: '#f5f5f5' } } }
       }
     });
   },
 
   createHoursChart(data) {
     const ctx = document.getElementById('admin-chart-hours');
-    if (!ctx) return;
+    if (!ctx || typeof Chart === 'undefined') return;
 
-    if (window.adminHoursChart) {
-      window.adminHoursChart.destroy();
-    }
+    if (window.adminHoursChart) window.adminHoursChart.destroy();
 
     window.adminHoursChart = new Chart(ctx, {
       type: 'bar',
@@ -310,75 +333,64 @@ const AdminApp = {
           y: { beginAtZero: true, ticks: { color: '#f5f5f5' }, grid: { color: 'rgba(255,255,255,0.1)' } },
           x: { ticks: { color: '#f5f5f5' }, grid: { display: false } }
         },
-        plugins: {
-          legend: { display: false }
-        }
+        plugins: { legend: { display: false } }
       }
     });
   },
 
   renderTopVoters(voters) {
     const container = document.getElementById('admin-top-voters');
+    if (!container) return;
+
     if (!voters || voters.length === 0) {
-      container.innerHTML = '<p style="text-align:center;padding:2rem;color:#6c757d;">No hay datos disponibles</p>';
+      container.innerHTML = '<p style="text-align:center;padding:2rem;">No hay datos</p>';
       return;
     }
 
-    const table = `
+    container.innerHTML = `
       <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Ranking</th>
-            <th>IP</th>
-            <th>Votos</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Ranking</th><th>IP</th><th>Votos</th></tr></thead>
         <tbody>
-          ${voters.map((voter, index) => `
+          ${voters.map((v, i) => `
             <tr>
-              <td>${index + 1}</td>
-              <td><code>${voter.user_ip.substring(0, 15)}...</code></td>
-              <td><strong>${voter.vote_count}</strong></td>
+              <td>${i + 1}</td>
+              <td><code>${v.user_ip.substring(0, 15)}...</code></td>
+              <td><strong>${v.vote_count}</strong></td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
-
-    container.innerHTML = table;
   },
 
   async loadVideos() {
     try {
+      if (typeof API === 'undefined') return;
       const response = await API.videos.getAll({ limit: 1000 });
       this.renderVideosTable(response.videos);
-
-      // Setup select all
-      document.getElementById('select-all-videos')?.addEventListener('change', (e) => {
-        this.toggleSelectAll(e.target.checked);
-      });
-
     } catch (error) {
       console.error('Error loading videos:', error);
-      Utils.showToast('Error cargando videos', 'error');
     }
   },
 
   renderVideosTable(videos) {
     const tbody = document.getElementById('admin-videos-tbody');
+    if (!tbody) return;
     
     if (videos.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="table-loading">No hay videos</td></tr>';
       return;
     }
 
+    const escape = (t) => String(t).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
     tbody.innerHTML = videos.map(video => `
       <tr>
         <td><input type="checkbox" class="video-checkbox" data-id="${video.id}"></td>
         <td>${video.id}</td>
-        <td>${video.platform === 'tiktok' ? '🎵 TikTok' : '▶️ YouTube'}</td>
-        <td>${Utils.escapeHtml(video.title || 'Sin título').substring(0, 50)}...</td>
-        <td>@${Utils.escapeHtml(video.username || 'unknown')}</td>
+        <td>${video.platform === 'tiktok' ? '🎵' : '▶️'}</td>
+        <td>${escape(video.title || 'Sin título').substring(0, 50)}...</td>
+        <td>@${escape(video.username || 'unknown')}</td>
         <td>${video.vote_count || 0}</td>
         <td>${new Date(video.created_at).toLocaleDateString('es-ES')}</td>
         <td>
@@ -388,33 +400,17 @@ const AdminApp = {
       </tr>
     `).join('');
 
-    // Setup checkboxes
     document.querySelectorAll('.video-checkbox').forEach(cb => {
       cb.addEventListener('change', (e) => {
         const id = parseInt(e.target.dataset.id);
-        if (e.target.checked) {
-          this.selectedVideos.add(id);
-        } else {
-          this.selectedVideos.delete(id);
-        }
+        e.target.checked ? this.selectedVideos.add(id) : this.selectedVideos.delete(id);
       });
-    });
-  },
-
-  toggleSelectAll(checked) {
-    document.querySelectorAll('.video-checkbox').forEach(cb => {
-      cb.checked = checked;
-      const id = parseInt(cb.dataset.id);
-      if (checked) {
-        this.selectedVideos.add(id);
-      } else {
-        this.selectedVideos.delete(id);
-      }
     });
   },
 
   async editVideo(id) {
     try {
+      if (typeof API === 'undefined') return;
       const response = await API.videos.getById(id);
       const video = response.video;
 
@@ -425,20 +421,22 @@ const AdminApp = {
 
       document.getElementById('edit-modal').classList.add('active');
 
-      // Setup form submit
       const form = document.getElementById('edit-video-form');
-      form.onsubmit = async (e) => {
+      const newForm = form.cloneNode(true);
+      form.parentNode.replaceChild(newForm, form);
+      
+      newForm.onsubmit = async (e) => {
         e.preventDefault();
         await this.saveVideoEdit();
       };
 
     } catch (error) {
-      Utils.showToast('Error cargando video', 'error');
+      alert('Error cargando video');
     }
   },
 
   closeEditModal() {
-    document.getElementById('edit-modal').classList.remove('active');
+    document.getElementById('edit-modal')?.classList.remove('active');
   },
 
   async saveVideoEdit() {
@@ -449,47 +447,38 @@ const AdminApp = {
       const description = document.getElementById('edit-description').value;
 
       await AdminAPI.updateVideo(id, { title, username, description });
-
-      Utils.showToast('Video actualizado exitosamente', 'success');
+      alert('Video actualizado');
       this.closeEditModal();
-      this.loadVideos();
-
+      await this.loadVideos();
     } catch (error) {
-      Utils.showToast(error.message, 'error');
+      alert(error.message);
     }
   },
 
   async deleteVideoConfirm(id) {
-    if (!confirm('¿Seguro que deseas eliminar este video? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
+    if (!confirm('¿Eliminar este video?')) return;
     try {
       await AdminAPI.deleteVideo(id);
-      Utils.showToast('Video eliminado', 'success');
-      this.loadVideos();
+      alert('Video eliminado');
+      await this.loadVideos();
     } catch (error) {
-      Utils.showToast(error.message, 'error');
+      alert(error.message);
     }
   },
 
   async bulkDeleteConfirm() {
     if (this.selectedVideos.size === 0) {
-      Utils.showToast('No has seleccionado ningún video', 'warning');
+      alert('No has seleccionado videos');
       return;
     }
-
-    if (!confirm(`¿Eliminar ${this.selectedVideos.size} video(s)? Esta acción no se puede deshacer.`)) {
-      return;
-    }
-
+    if (!confirm(`¿Eliminar ${this.selectedVideos.size} videos?`)) return;
     try {
       await AdminAPI.bulkDeleteVideos(Array.from(this.selectedVideos));
-      Utils.showToast('Videos eliminados', 'success');
+      alert('Videos eliminados');
       this.selectedVideos.clear();
-      this.loadVideos();
+      await this.loadVideos();
     } catch (error) {
-      Utils.showToast(error.message, 'error');
+      alert(error.message);
     }
   },
 
@@ -498,54 +487,61 @@ const AdminApp = {
       const response = await AdminAPI.getConfig();
       const config = response.config;
 
-      // Cargar valores de APIs en los inputs
       document.getElementById('tiktok1-key').value = config.apis.tiktok1.key || '';
       document.getElementById('tiktok1-host').value = config.apis.tiktok1.host || '';
       document.getElementById('tiktok2-key').value = config.apis.tiktok2.key || '';
       document.getElementById('tiktok2-host').value = config.apis.tiktok2.host || '';
       document.getElementById('youtube-key').value = config.apis.youtube.key || '';
 
-      // Actualizar indicadores de estado
       this.updateApiStatus('tiktok1', config.apis.tiktok1.configured);
       this.updateApiStatus('tiktok2', config.apis.tiktok2.configured);
       this.updateApiStatus('youtube', config.apis.youtube.configured);
 
-      // Servidor
       document.getElementById('config-port').textContent = config.server.port;
       document.getElementById('config-env').textContent = config.server.nodeEnv;
       document.getElementById('config-rate-limit').textContent = 
-        `${config.security.rateLimitMax} requests / ${config.security.rateLimitWindow / 60000} minutos`;
+        `${config.security.rateLimitMax} / ${config.security.rateLimitWindow / 60000} min`;
 
-      // Setup form submit
       const form = document.getElementById('api-config-form');
-      form.onsubmit = async (e) => {
+      const newForm = form.cloneNode(true);
+      form.parentNode.replaceChild(newForm, form);
+      
+      newForm.onsubmit = async (e) => {
         e.preventDefault();
         await this.saveApiConfig();
       };
 
     } catch (error) {
-      Utils.showToast('Error cargando configuración', 'error');
+      console.error('Error loading config:', error);
     }
   },
 
   updateApiStatus(apiName, isConfigured) {
-    const statusElement = document.getElementById(`${apiName}-status`);
-    const dot = statusElement.querySelector('.status-dot');
-    const text = statusElement.querySelector('.status-text');
+    const el = document.getElementById(`${apiName}-status`);
+    if (!el) return;
+
+    const dot = el.querySelector('.status-dot');
+    const text = el.querySelector('.status-text');
 
     if (isConfigured) {
-      dot.classList.add('active');
-      text.textContent = '✅ Configurada y activa';
-      text.style.color = 'var(--success)';
+      dot?.classList.add('active');
+      if (text) text.textContent = '✅ Configurada';
     } else {
-      dot.classList.remove('active');
-      text.textContent = '❌ No configurada';
-      text.style.color = 'var(--error)';
+      dot?.classList.remove('active');
+      if (text) text.textContent = '❌ No configurada';
     }
   },
 
   async saveApiConfig() {
+    const btn = document.querySelector('#api-config-form button[type="submit"]');
+    const orig = btn?.textContent;
+
     try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '💾 Guardando...';
+      }
+
       const apis = {
         tiktok1: {
           key: document.getElementById('tiktok1-key').value.trim(),
@@ -560,28 +556,25 @@ const AdminApp = {
         }
       };
 
-      // Validar que al menos una API esté configurada
       if (!apis.tiktok1.key && !apis.tiktok2.key && !apis.youtube.key) {
-        Utils.showToast('Debes configurar al menos una API', 'warning');
+        alert('Configura al menos una API');
         return;
       }
 
-      const response = await AdminAPI.updateConfig(apis);
+      await AdminAPI.updateConfig(apis);
+      alert('✅ Configuración guardada');
 
-      Utils.showToast('✅ Configuración guardada exitosamente', 'success');
-
-      // Actualizar indicadores
       this.updateApiStatus('tiktok1', !!apis.tiktok1.key);
       this.updateApiStatus('tiktok2', !!apis.tiktok2.key);
       this.updateApiStatus('youtube', !!apis.youtube.key);
 
-      // Recargar configuración
-      setTimeout(() => {
-        this.loadConfig();
-      }, 1000);
-
     } catch (error) {
-      Utils.showToast(error.message || 'Error guardando configuración', 'error');
+      alert('Error: ' + error.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
     }
   },
 
@@ -591,59 +584,41 @@ const AdminApp = {
       const logs = response.logs;
 
       const container = document.getElementById('admin-logs-container');
+      if (!container) return;
       
       if (logs.length === 0) {
-        container.innerHTML = '<p style="text-align:center;padding:2rem;color:#6c757d;">No hay logs disponibles</p>';
+        container.innerHTML = '<p style="text-align:center;padding:2rem;">No hay logs</p>';
         return;
       }
 
-      container.innerHTML = logs.map(log => {
-        const date = new Date(log.timestamp);
-        return `
-          <div class="log-item ${log.event_type === 'VOTE_CAST' ? 'vote' : 'video'}">
-            <div class="log-time">${date.toLocaleString('es-ES')}</div>
-            <div class="log-content">
-              <div class="log-type">${log.event_type === 'VOTE_CAST' ? '❤️ Voto' : '🎬 Video'}</div>
-              <div class="log-description">${Utils.escapeHtml(log.description)}</div>
-              <div class="log-details">${Utils.escapeHtml(log.details)}</div>
-            </div>
+      const escape = (t) => String(t).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
+      container.innerHTML = logs.map(log => `
+        <div class="log-item">
+          <div class="log-time">${new Date(log.timestamp).toLocaleString('es-ES')}</div>
+          <div class="log-content">
+            <div class="log-type">${log.event_type === 'VOTE_CAST' ? '❤️ Voto' : '🎬 Video'}</div>
+            <div class="log-description">${escape(log.description)}</div>
           </div>
-        `;
-      }).join('');
+        </div>
+      `).join('');
 
     } catch (error) {
-      Utils.showToast('Error cargando logs', 'error');
+      console.error('Error loading logs:', error);
     }
   },
 
   confirmAction(action, message) {
-    if (!confirm(`⚠️ ${message}\n\n¿Estás seguro?`)) {
-      return;
-    }
-
-    switch(action) {
-      case 'backup':
-        Utils.showToast('Función de backup próximamente', 'info');
-        break;
-      case 'clear-votes':
-        this.clearAllVotes();
-        break;
-    }
-  },
-
-  async clearAllVotes() {
-    try {
-      // Esta funcionalidad requiere un endpoint adicional
-      Utils.showToast('Función próximamente', 'info');
-    } catch (error) {
-      Utils.showToast(error.message, 'error');
-    }
+    if (!confirm(`⚠️ ${message}`)) return;
+    alert('Función próximamente');
   }
 };
 
-// Inicializar app cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => AdminApp.init());
+} else {
   AdminApp.init();
-});
+}
 
 window.AdminApp = AdminApp;
+window.AdminAPI = AdminAPI;
