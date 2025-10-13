@@ -23,6 +23,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
   console.log('✅ Conectado a la base de datos SQLite');
 });
 
+// Función para cerrar la base de datos correctamente
+function closeDatabase() {
+  db.close((err) => {
+    if (err) {
+      console.error('❌ Error cerrando base de datos:', err.message);
+      process.exit(1);
+    } else {
+      console.log('\n🎉 Base de datos configurada exitosamente');
+      console.log('📁 Ubicación:', dbPath);
+      console.log('\n🚀 Listo para iniciar el servidor');
+      process.exit(0);
+    }
+  });
+}
+
 // Crear tablas
 db.serialize(() => {
   // Tabla de videos
@@ -41,13 +56,7 @@ db.serialize(() => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error creando tabla videos:', err.message);
-    } else {
-      console.log('✅ Tabla "videos" creada');
-    }
-  });
+  `);
 
   // Tabla de votos
   db.run(`
@@ -60,15 +69,9 @@ db.serialize(() => {
       UNIQUE(video_id, user_ip),
       FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE
     )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error creando tabla votes:', err.message);
-    } else {
-      console.log('✅ Tabla "votes" creada');
-    }
-  });
+  `);
 
-  // Tabla de categorías (opcional)
+  // Tabla de categorías
   db.run(`
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,13 +80,7 @@ db.serialize(() => {
       color TEXT DEFAULT '#DAA520',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error creando tabla categories:', err.message);
-    } else {
-      console.log('✅ Tabla "categories" creada');
-    }
-  });
+  `);
 
   // Tabla de relación videos-categorías
   db.run(`
@@ -94,15 +91,9 @@ db.serialize(() => {
       FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
       FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
     )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error creando tabla video_categories:', err.message);
-    } else {
-      console.log('✅ Tabla "video_categories" creada');
-    }
-  });
+  `);
 
-  // Tabla de configuración (para APIs y settings)
+  // Tabla de configuración
   db.run(`
     CREATE TABLE IF NOT EXISTS config (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,21 +102,17 @@ db.serialize(() => {
       description TEXT,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error creando tabla config:', err.message);
-    } else {
-      console.log('✅ Tabla "config" creada');
-    }
-  });
+  `);
 
-  // Crear índices para optimización
+  console.log('✅ Tablas creadas');
+
+  // Crear índices
   db.run('CREATE INDEX IF NOT EXISTS idx_votes_video_id ON votes(video_id)');
   db.run('CREATE INDEX IF NOT EXISTS idx_votes_user_ip ON votes(user_ip)');
   db.run('CREATE INDEX IF NOT EXISTS idx_videos_platform ON videos(platform)');
   db.run('CREATE INDEX IF NOT EXISTS idx_videos_created_at ON videos(created_at DESC)');
 
-  console.log('✅ Índices creados para optimización');
+  console.log('✅ Índices creados');
 
   // Insertar categorías por defecto
   const defaultCategories = [
@@ -140,11 +127,11 @@ db.serialize(() => {
   defaultCategories.forEach(cat => {
     stmt.run(cat.name, cat.description, cat.color);
   });
-  stmt.finalize(() => {
-    console.log('✅ Categorías por defecto insertadas');
-  });
+  stmt.finalize();
 
-  // Insertar/actualizar configuraciones por defecto desde .env
+  console.log('✅ Categorías insertadas');
+
+  // Insertar configuraciones por defecto
   console.log('\n🔑 Importando configuraciones desde .env...');
   
   const defaultConfigs = [
@@ -158,21 +145,18 @@ db.serialize(() => {
   const configStmt = db.prepare('INSERT OR REPLACE INTO config (key, value, description, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)');
   defaultConfigs.forEach(cfg => {
     configStmt.run(cfg.key, cfg.value, cfg.description);
-    const status = cfg.value ? '✅ Configurada' : '⚠️  Vacía';
-    console.log(`   ${status}: ${cfg.key}`);
+    const status = cfg.value ? '✅' : '⚠️ ';
+    console.log(`   ${status} ${cfg.key}`);
   });
+  
+  // IMPORTANTE: Cerrar la base de datos cuando finalize termine
   configStmt.finalize(() => {
-    console.log('✅ Configuraciones importadas desde .env');
-    console.log('\n💡 Ahora puedes editarlas desde el panel admin sin reiniciar');
+    console.log('✅ Configuraciones importadas');
+    console.log('\n💡 Edítalas desde el panel admin sin reiniciar');
+    
+    // Cerrar la DB después de 500ms para asegurar que todo se escribió
+    setTimeout(() => {
+      closeDatabase();
+    }, 500);
   });
-});
-
-db.close((err) => {
-  if (err) {
-    console.error('❌ Error cerrando base de datos:', err.message);
-  } else {
-    console.log('\n🎉 Base de datos configurada exitosamente');
-    console.log('📁 Ubicación:', dbPath);
-    console.log('\n🚀 Siguiente paso: npm start');
-  }
 });
