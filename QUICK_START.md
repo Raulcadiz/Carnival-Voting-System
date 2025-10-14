@@ -1,253 +1,245 @@
-# 🚀 GUÍA DE INICIO RÁPIDO
+# 🚀 QUICK START GUIDE
 
-## ⚡ Instalación en 5 Pasos
+## En 5 minutos tendrás TODO funcionando
 
-### **1️⃣ Descomprimir el proyecto**
+### ⚡ PASO 1: Instalación (2 minutos)
+
 ```bash
-unzip carnival-voting-system.zip
-cd carnival-voting-system
-```
+# Clonar el proyecto
+git clone https://github.com/Raulcadiz/Carnival-Voting-System.git
+cd Carnival-Voting-System
 
-### **2️⃣ Instalar (OPCIÓN A - Automática)**
-```bash
-chmod +x install.sh
-./install.sh
-```
-
-### **2️⃣ Instalar (OPCIÓN B - Manual)**
-```bash
+# Instalar dependencias
 npm install
-cp .env.example .env
-nano .env  # Editar con tus API keys
-npm run migrate
+
+# Ejecutar migración de base de datos
+node scripts/migrate-enhanced.js
+
+# Dar permisos al instalador
+chmod +x install-enhanced.sh
+
+# Ejecutar instalador
+./install-enhanced.sh
 ```
 
-### **3️⃣ Configurar APIs en .env**
+### 🔑 PASO 2: Obtener API Key de Groq (1 minuto)
 
-**📝 Edita el archivo `.env` y completa:**
+1. Ve a https://console.groq.com
+2. Crea cuenta (email + contraseña)
+3. Clic en "Create API Key"
+4. Copia la key
 
-```env
-# ===== TIKTOK APIS =====
-# Obtener en: https://rapidapi.com/yi005jun/api/tiktok-scraper7
-TIKTOK_API_KEY_1=PEGAR_TU_API_KEY_AQUI
-TIKTOK_API_HOST_1=tiktok-scraper7.p.rapidapi.com
+### ⚙️ PASO 3: Configurar (1 minuto)
 
-# Backup API (opcional pero recomendado)
-TIKTOK_API_KEY_2=PEGAR_TU_SEGUNDA_API_KEY_AQUI
-TIKTOK_API_HOST_2=tiktok-video-no-watermark2.p.rapidapi.com
+```bash
+# Editar .env
+nano .env
 
-# ===== YOUTUBE API =====
-# Obtener en: https://console.cloud.google.com/
-YOUTUBE_API_KEY=PEGAR_TU_YOUTUBE_API_KEY_AQUI
+# Pegar tu key de Groq
+GROQ_API_KEY=gsk_tu_key_aqui
 
-# Puerto (cambiar si 3000 está ocupado)
-PORT=3000
+# Guardar: Ctrl+O, Enter, Ctrl+X
 ```
 
-### **4️⃣ Iniciar servidor**
+### 🔧 PASO 4: Actualizar server.js (30 segundos)
+
+Abre `server.js` y agrega después de tus rutas existentes:
+
+```javascript
+// 🆕 Nuevas rutas
+const aiRoutes = require('./routes/ai');
+const adminApiKeysRoutes = require('./routes/adminApiKeys');
+
+app.use('/api/ai', aiRoutes);
+app.use('/api/admin/api-keys', adminApiKeysRoutes);
+```
+
+### 🚀 PASO 5: Iniciar (30 segundos)
+
 ```bash
 npm start
 ```
 
-### **5️⃣ Abrir en navegador**
-```
-http://localhost:3000
+### ✅ PASO 6: Probar
+
+Abre tu navegador:
+
+1. **Trivial**: http://localhost:3000/trivia.html
+2. **Chat**: http://localhost:3000/chat.html
+3. **Admin**: http://localhost:3000/admin/api-keys.html
+
+---
+
+## 🎯 Verificación Rápida
+
+### ¿Todo funciona bien?
+
+- [ ] El servidor inició sin errores
+- [ ] Puedes acceder a /trivia.html
+- [ ] Puedes generar preguntas de trivial
+- [ ] Puedes chatear con Carnivalito
+- [ ] El panel de admin muestra las APIs
+
+### ❌ ¿Algo no funciona?
+
+```bash
+# Verificar logs
+npm start
+
+# Si dice "Servicio de IA no configurado":
+# → Verifica que GROQ_API_KEY esté en .env
+
+# Si dice "Cannot find module":
+# → Ejecuta: npm install axios
+
+# Si la base de datos da error:
+# → Ejecuta: node scripts/migrate-enhanced.js
 ```
 
 ---
 
-## 🔑 Obtener API Keys
+## 🎮 Primera Interacción
 
-### **🎵 TikTok APIs (RapidAPI)**
+### Trivial
 
-1. **Ir a RapidAPI:**
-   - https://rapidapi.com/auth/sign-up
-   
-2. **Buscar "TikTok Scraper":**
-   - API recomendada 1: "TikTok Scraper7"
-   - API recomendada 2: "TikTok Video No Watermark2"
-   
-3. **Suscribirse al plan gratuito**
-   - 100-500 requests gratis/mes
-   
-4. **Copiar tu API Key:**
-   - Está en la sección "Code Snippets"
-   - Se ve así: `a1b2c3d4e5...`
+1. Ve a http://localhost:3000/trivia.html
+2. Selecciona "Historia del Carnaval 🎭"
+3. Elige "Fácil"
+4. Clic en "¡Comenzar Trivial!"
+5. ¡Responde y diviértete!
 
-### **▶️ YouTube API (Google Cloud)**
+### Chat
 
-1. **Ir a Google Cloud Console:**
-   - https://console.cloud.google.com/
-   
-2. **Crear proyecto nuevo:**
-   - Nombre: "Carnival Voting System"
-   
-3. **Habilitar YouTube Data API v3:**
-   - Buscar "YouTube Data API v3"
-   - Click en "Enable"
-   
-4. **Crear credenciales:**
-   - Credentials > Create Credentials > API Key
-   - Copiar tu API Key
-   
-5. **Cuota:**
-   - 10,000 unidades gratis/día
-   - Cada scrape consume ~5 unidades
+1. Ve a http://localhost:3000/chat.html
+2. Escribe: "¿Cómo puedo votar?"
+3. Carnivalito te responderá con emojis
+4. Prueba: "Cuéntame sobre el Carnaval"
+
+### Admin
+
+1. Inicia sesión en /admin
+2. Ve a "API Keys"
+3. Verás todas tus APIs configuradas
+4. Prueba alguna con el botón "🧪 Probar"
 
 ---
 
-## 📝 Primeros Pasos
+## 💡 Tips Profesionales
 
-### **Agregar tu primer video:**
+### Para Desarrollo
 
-1. Ve a la pestaña **"➕ Agregar Video"**
-2. Pega una URL de TikTok o YouTube:
-   ```
-   https://www.tiktok.com/@username/video/123456789
-   https://www.youtube.com/watch?v=dQw4w9WgXcQ
-   ```
-3. Click en **"🚀 Agregar Video"**
-4. ¡Listo! El sistema extraerá automáticamente título, autor y thumbnail
+```bash
+# Usar nodemon para auto-reload
+npm install -g nodemon
+nodemon server.js
 
-### **Votar:**
+# Ver logs en tiempo real
+tail -f logs/app.log
+```
 
-1. Ve a la pestaña **"📹 Videos"**
-2. Click en **"❤️ Votar"** en cualquier video
-3. Solo puedes votar 1 vez por video (se guarda tu IP)
+### Para Producción
 
-### **Ver estadísticas:**
+```bash
+# Variables de entorno
+NODE_ENV=production
+GROQ_API_KEY=tu_key_prod
+JWT_SECRET=secreto_muy_seguro
 
-1. Ve a la pestaña **"📊 Estadísticas"**
-2. Verás gráficos interactivos de:
-   - Top 10 videos
-   - Votos por día
-   - Distribución por plataforma
-   - Videos en tendencia
+# Usar PM2
+npm install -g pm2
+pm2 start server.js --name "carnival"
+pm2 logs carnival
+```
+
+### Optimizaciones
+
+1. **Caché de preguntas**: Guarda preguntas generadas
+2. **Rate limiting**: Limita requests por usuario
+3. **Compresión**: Usa gzip para responses
+4. **CDN**: Sirve archivos estáticos desde CDN
 
 ---
 
-## 🐛 Problemas Comunes
+## 🔥 Comandos Útiles
 
-### **❌ "No hay APIs de TikTok configuradas"**
-**Solución:** Verifica que `.env` tenga `TIKTOK_API_KEY_1` o `TIKTOK_API_KEY_2`
-
-### **❌ "API Key de YouTube inválida"**
-**Solución:** 
-- Verifica que copiaste la key correctamente
-- Asegúrate de que YouTube Data API v3 esté habilitada en Google Cloud
-
-### **❌ "Puerto 3000 en uso"**
-**Solución:** Cambia el puerto en `.env`:
-```env
-PORT=8080
-```
-
-### **❌ Videos no cargan o error de base de datos**
-**Solución:** Recrear la base de datos:
 ```bash
-npm run migrate
-```
-
-### **❌ "npm: command not found"**
-**Solución:** Instala Node.js desde https://nodejs.org/
-
----
-
-## 💡 Tips Pro
-
-### **Desarrollo con auto-reload:**
-```bash
-npm run dev
-```
-
-### **Limpiar y recrear todo:**
-```bash
-rm -rf node_modules database
-npm install
-npm run migrate
-```
-
-### **Ver logs en tiempo real:**
-```bash
-npm start | tee server.log
-```
-
-### **Testing rápido:**
-```bash
-# Agregar video de prueba
-curl -X POST http://localhost:3000/api/videos \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
-
-# Ver todos los videos
-curl http://localhost:3000/api/videos
+# Reiniciar servidor
+npm restart
 
 # Ver estadísticas
-curl http://localhost:3000/api/stats
+curl http://localhost:3000/api/health
+
+# Probar endpoint de trivial
+curl -X POST http://localhost:3000/api/ai/trivia/generate \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "Carnaval", "difficulty": "easy"}'
+
+# Probar chat
+curl -X POST http://localhost:3000/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hola"}'
 ```
 
 ---
 
-## 📱 URLs Importantes
+## 🎓 Próximos Pasos
 
-| Función | URL |
-|---------|-----|
-| **App principal** | http://localhost:3000 |
-| **API Health Check** | http://localhost:3000/api/health |
-| **Videos** | http://localhost:3000/api/videos |
-| **Estadísticas** | http://localhost:3000/api/stats |
-| **Ranking** | http://localhost:3000/api/stats/ranking |
+### Nivel 1: Básico
+- [ ] Cambia los colores del tema
+- [ ] Agrega tu logo
+- [ ] Personaliza a Carnivalito
 
----
+### Nivel 2: Intermedio
+- [ ] Crea una nueva categoría de trivial
+- [ ] Agrega un leaderboard
+- [ ] Implementa sistema de logros
 
-## 🎯 Checklist de Instalación
-
-- [ ] Node.js instalado (v14+)
-- [ ] Proyecto descomprimido
-- [ ] Dependencias instaladas (`npm install`)
-- [ ] Archivo `.env` creado y configurado
-- [ ] APIs de TikTok configuradas (mínimo 1)
-- [ ] API de YouTube configurada
-- [ ] Base de datos creada (`npm run migrate`)
-- [ ] Servidor iniciado (`npm start`)
-- [ ] Navegador abierto en http://localhost:3000
-- [ ] Primer video agregado exitosamente
+### Nivel 3: Avanzado
+- [ ] Trivial multijugador en tiempo real
+- [ ] Carnivalito con voz (Text-to-Speech)
+- [ ] Integración con más redes sociales
 
 ---
 
-## 🆘 Ayuda Adicional
+## 📞 Ayuda
 
-Si nada funciona:
+### Documentación Completa
+- `README_ENHANCED.md` - Documentación detallada
+- `INTEGRATION_GUIDE.md` - Guía de integración
+- `server.example.js` - Ejemplo de server.js
 
-1. **Verifica los requisitos:**
-   ```bash
-   node -v  # Debe ser >= 14
-   npm -v   # Debe funcionar
-   ```
+### Recursos
+- [Documentación Groq](https://console.groq.com/docs)
+- [Express.js Guide](https://expressjs.com/en/guide/routing.html)
+- [SQLite Docs](https://www.sqlite.org/docs.html)
 
-2. **Reinstala desde cero:**
-   ```bash
-   rm -rf node_modules package-lock.json database
-   npm install
-   npm run migrate
-   ```
-
-3. **Revisa los logs:**
-   - El servidor muestra errores detallados en la consola
-   - Busca líneas que empiecen con `❌`
-
-4. **Revisa el README completo:**
-   - `README.md` tiene documentación exhaustiva
+### Soporte
+- 🐛 Issues: GitHub Issues
+- 💬 Chat: Discord (próximamente)
+- 📧 Email: soporte@carnival.com
 
 ---
 
-**¡Listo! Ahora tienes un sistema profesional de votación funcionando! 🎉**
+## ⭐ Checklist Final
 
-Si todo funciona bien, deberías ver:
-- ✅ Servidor corriendo en http://localhost:3000
-- ✅ Interfaz visual con tema Carnaval
-- ✅ Capacidad de agregar videos
-- ✅ Sistema de votación funcional
-- ✅ Gráficos y estadísticas
+Antes de desplegar a producción:
 
-**¿Problemas?** Revisa la sección de Troubleshooting en el README.md
+- [ ] Todas las API keys configuradas
+- [ ] JWT_SECRET cambiado
+- [ ] Rate limiting configurado
+- [ ] HTTPS habilitado
+- [ ] Backup de base de datos configurado
+- [ ] Logs centralizados
+- [ ] Monitoreo activo
+- [ ] Variables de entorno seguras
+
+---
+
+**¡Listo! Ya tienes el sistema más épico de votación con IA integrada 🎉**
+
+¿Problemas? ¡Lee la documentación completa!
+¿Todo funciona? ¡Dale una ⭐ al repo!
+
+---
+
+Made with ❤️, ☕, and 🎭

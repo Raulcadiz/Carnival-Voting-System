@@ -1,206 +1,157 @@
+// server.js - VERSIÓN ACTUALIZADA CON IA
+// Este es un ejemplo de cómo debe quedar tu server.js después de integrar las nuevas funcionalidades
+
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
-
-// Importar rutas
-const videosRoutes = require('./routes/videos');
-const votesRoutes = require('./routes/votes');
-const statsRoutes = require('./routes/stats');
-const adminRoutes = require('./routes/admin');
+const cors = require('cors');
+const db = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ============================================
-// MIDDLEWARES DE SEGURIDAD
+// MIDDLEWARES
 // ============================================
 
-// Helmet para headers de seguridad
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'"],
-      frameSrc: ["https://www.tiktok.com", "https://www.youtube.com"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: []
-    }
-  }
+    contentSecurityPolicy: false, // Para permitir inline scripts necesarios
 }));
 
-// CORS
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://tu-dominio.com'] 
-    : '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: { error: 'Demasiadas solicitudes, intenta más tarde' },
-  standardHeaders: true,
-  legacyHeaders: false
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde'
 });
-
 app.use('/api/', limiter);
 
-// Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Logging middleware
+// Middleware para agregar db a req
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${req.ip}`);
-  next();
+    req.db = db;
+    next();
 });
 
 // ============================================
-// SERVIR ARCHIVOS ESTÁTICOS
+// RUTAS ORIGINALES
 // ============================================
-app.use(express.static(path.join(__dirname, 'public')));
 
-// ============================================
-// RUTAS DE API
-// ============================================
+const videosRoutes = require('./routes/videos');
+const votesRoutes = require('./routes/votes');
+const statsRoutes = require('./routes/stats');
+const adminRoutes = require('./routes/admin'); // Si existe
+
 app.use('/api/videos', videosRoutes);
 app.use('/api/votes', votesRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/admin', adminRoutes);
+if (adminRoutes) {
+    app.use('/api/admin', adminRoutes);
+}
 
-// Ruta de health check
-app.get('/api/health', async (req, res) => {
-  try {
-    // Verificar conexión a la base de datos
-    const db = require('./config/database');
-    await db.get('SELECT 1');
-    
-    res.status(200).json({
-      status: 'OK',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'development',
-      database: 'connected'
-    });
-  } catch (error) {
-    console.error('Healthcheck failed:', error);
-    res.status(503).json({
-      status: 'ERROR',
-      timestamp: new Date().toISOString(),
-      error: 'Database not ready',
-      database: 'disconnected'
-    });
-  }
+// ============================================
+// 🆕 NUEVAS RUTAS - FUNCIONALIDADES CON IA
+// ============================================
+
+const aiRoutes = require('./routes/ai');
+const adminApiKeysRoutes = require('./routes/adminApiKeys');
+
+app.use('/api/ai', aiRoutes);
+app.use('/api/admin/api-keys', adminApiKeysRoutes);
+
+// ============================================
+// RUTA DE HEALTH CHECK
+// ============================================
+
+app.get('/api/health', (req, res) => {
+    const status = {
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        apis: {
+            groq: !!process.env.GROQ_API_KEY,
+            tiktok1: !!process.env.TIKTOK_API_KEY_1,
+            tiktok2: !!process.env.TIKTOK_API_KEY_2,
+            youtube: !!process.env.YOUTUBE_API_KEY
+        },
+        features: {
+            voting: true,
+            scraping: true,
+            trivia: !!process.env.GROQ_API_KEY,
+            chat: !!process.env.GROQ_API_KEY,
+            apiManagement: true
+        }
+    };
+    res.json(status);
 });
 
 // ============================================
 // MANEJO DE ERRORES
 // ============================================
 
-// Ruta no encontrada
+// 404 - Ruta no encontrada
 app.use((req, res) => {
-  res.status(404).json({
-    error: 'Ruta no encontrada',
-    path: req.path
-  });
+    res.status(404).json({ 
+        error: 'Ruta no encontrada',
+        path: req.path 
+    });
 });
 
 // Error handler global
 app.use((err, req, res, next) => {
-  console.error('❌ Error no manejado:', err);
-  
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Error interno del servidor' 
-      : err.message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
-  });
+    console.error('❌ Error:', err.stack);
+    res.status(500).json({ 
+        error: 'Error interno del servidor',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Algo salió mal'
+    });
 });
 
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
-const HOST = process.env.HOST || '0.0.0.0';
 
-// Verificar conexión a la base de datos antes de iniciar
-const db = require('./config/database');
-
-async function startServer() {
-  try {
-    // Test de conexión a la base de datos
-    await db.get('SELECT 1');
-    console.log('✅ Conectado a la base de datos SQLite');
-    
-    const server = app.listen(PORT, HOST, () => {
-      console.log(`
-╔════════════════════════════════════════════╗
-║   🎭 CARNIVAL VOTING SYSTEM - ACTIVO 🎭   ║
-╚════════════════════════════════════════════╝
-
-🌐 Servidor corriendo en: http://${HOST}:${PORT}
-📊 API disponible en: http://${HOST}:${PORT}/api
-🔒 Seguridad: ${process.env.NODE_ENV === 'production' ? 'PRODUCCIÓN' : 'DESARROLLO'}
-⏰ Iniciado: ${new Date().toLocaleString('es-ES')}
-
-📝 Endpoints disponibles:
-   GET    /api/health
-   GET    /api/videos
-   POST   /api/videos
-   GET    /api/videos/:id
-   DELETE /api/videos/:id
-   POST   /api/votes
-   GET    /api/votes/check/:videoId
-   GET    /api/stats
-   GET    /api/stats/ranking
-   GET    /api/stats/trending
-   GET    /api/stats/random
-
-💡 TIP: Abre http://localhost:${PORT} en tu navegador
-  `);
-      
-      // Log específico para Railway
-      console.log(`Server listening on ${HOST}:${PORT}`);
-    });
-
-    // Manejo de errores del servidor
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Puerto ${PORT} ya está en uso`);
-        process.exit(1);
-      } else {
-        console.error('❌ Error del servidor:', error);
-        process.exit(1);
-      }
-    });
-    
-  } catch (error) {
-    console.error('❌ Error conectando a la base de datos:', error);
-    console.error('💡 Asegúrate de ejecutar: npm run migrate');
-    process.exit(1);
-  }
-}
-
-// Iniciar servidor
-startServer();
+app.listen(PORT, () => {
+    console.log('🎭 ============================================');
+    console.log(`   CARNIVAL VOTING SYSTEM - Enhanced Edition`);
+    console.log('============================================ 🎪');
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(`📍 URL: http://localhost:${PORT}`);
+    console.log('');
+    console.log('📊 Funcionalidades disponibles:');
+    console.log(`   ✅ Sistema de votación`);
+    console.log(`   ✅ Scraping de videos`);
+    console.log(`   ${process.env.GROQ_API_KEY ? '✅' : '❌'} Trivial con IA`);
+    console.log(`   ${process.env.GROQ_API_KEY ? '✅' : '❌'} Chat con Carnivalito`);
+    console.log(`   ✅ Gestión de APIs`);
+    console.log('');
+    console.log('🎯 Accesos rápidos:');
+    console.log(`   🏠 Home: http://localhost:${PORT}/`);
+    console.log(`   🎲 Trivial: http://localhost:${PORT}/trivia.html`);
+    console.log(`   💬 Chat: http://localhost:${PORT}/chat.html`);
+    console.log(`   🔧 Admin: http://localhost:${PORT}/admin`);
+    console.log('');
+    if (!process.env.GROQ_API_KEY) {
+        console.log('⚠️  ADVERTENCIA: GROQ_API_KEY no configurada');
+        console.log('   El trivial y chat no funcionarán sin esta key');
+        console.log('   Obtén una gratis en: https://console.groq.com');
+        console.log('');
+    }
+    console.log('🎉 ¡Sistema listo! ¡Que comience la fiesta! 🎭');
+    console.log('============================================');
+});
 
 // Manejo de cierre graceful
-process.on('SIGINT', () => {
-  console.log('\n🛑 Cerrando servidor...');
-  process.exit(0);
+process.on('SIGTERM', () => {
+    console.log('📴 Señal SIGTERM recibida, cerrando servidor...');
+    db.close((err) => {
+        if (err) {
+            console.error('Error al cerrar la base de datos:', err);
+        }
+        process.exit(err ? 1 : 0);
+    });
 });
 
-process.on('SIGTERM', () => {
-  console.log('\n🛑 Cerrando servidor...');
-  process.exit(0);
-});
+module.exports = app;
