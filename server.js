@@ -1,46 +1,45 @@
-// server.js - VERSIÓN CORREGIDA
+// ======================================================
+// 🎭 CARNIVAL VOTING SYSTEM - Enhanced Edition (v2.1)
+// ======================================================
+
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
-const db = require('./config/database');
+const fs = require('fs');
+const path = require('path');
+
+let db;
+try {
+    db = require('./config/database');
+} catch (err) {
+    console.warn('⚠️  Advertencia: No se encontró ./config/database.js');
+    console.warn('   El servidor se iniciará sin conexión a la base de datos.\n');
+    db = null;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// ============================================
-// TRUST PROXY - CONFIGURACIÓN CORRECTA
-// ============================================
-// Solo confiar en 1 nivel de proxy (Nginx)
-app.set('trust proxy', 1);
 
 // ============================================
 // MIDDLEWARES
 // ============================================
 
 app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: false, // Necesario para permitir scripts inline
 }));
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Rate limiting con validación deshabilitada para trust proxy
+// Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-    message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde',
-    standardHeaders: true,
-    legacyHeaders: false,
-    // Deshabilitar validaciones que causan errores
-    validate: {
-        xForwardedForHeader: false,
-        trustProxy: false
-    }
+    message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde.'
 });
-
 app.use('/api/', limiter);
 
 // Middleware para agregar db a req
@@ -50,23 +49,31 @@ app.use((req, res, next) => {
 });
 
 // ============================================
-// RUTAS
+// RUTAS ORIGINALES
 // ============================================
 
-const videosRoutes = require('./routes/videos');
-const votesRoutes = require('./routes/votes');
-const statsRoutes = require('./routes/stats');
+function safeRequire(routePath) {
+    try {
+        return require(routePath);
+    } catch (err) {
+        console.warn(`⚠️  Ruta no encontrada: ${routePath}`);
+        return null;
+    }
+}
 
-app.use('/api/videos', videosRoutes);
-app.use('/api/votes', votesRoutes);
-app.use('/api/stats', statsRoutes);
+const videosRoutes = safeRequire('./routes/videos');
+const votesRoutes = safeRequire('./routes/votes');
+const statsRoutes = safeRequire('./routes/stats');
+const adminRoutes = safeRequire('./routes/admin');
+const aiRoutes = safeRequire('./routes/ai');
+const adminApiKeysRoutes = safeRequire('./routes/adminApiKeys');
 
-// Rutas de IA (nuevas)
-const aiRoutes = require('./routes/ai');
-const adminApiKeysRoutes = require('./routes/adminApiKeys');
-
-app.use('/api/ai', aiRoutes);
-app.use('/api/admin/api-keys', adminApiKeysRoutes);
+if (videosRoutes) app.use('/api/videos', videosRoutes);
+if (votesRoutes) app.use('/api/votes', votesRoutes);
+if (statsRoutes) app.use('/api/stats', statsRoutes);
+if (adminRoutes) app.use('/api/admin', adminRoutes);
+if (aiRoutes) app.use('/api/ai', aiRoutes);
+if (adminApiKeysRoutes) app.use('/api/admin/api-keys', adminApiKeysRoutes);
 
 // ============================================
 // RUTA DE HEALTH CHECK
@@ -83,11 +90,11 @@ app.get('/api/health', (req, res) => {
             youtube: !!process.env.YOUTUBE_API_KEY
         },
         features: {
-            voting: true,
-            scraping: true,
+            voting: !!votesRoutes,
+            scraping: !!videosRoutes,
             trivia: !!process.env.GROQ_API_KEY,
             chat: !!process.env.GROQ_API_KEY,
-            apiManagement: true
+            apiManagement: !!adminApiKeysRoutes
         }
     };
     res.json(status);
@@ -97,7 +104,6 @@ app.get('/api/health', (req, res) => {
 // MANEJO DE ERRORES
 // ============================================
 
-// 404
 app.use((req, res) => {
     res.status(404).json({ 
         error: 'Ruta no encontrada',
@@ -105,7 +111,6 @@ app.use((req, res) => {
     });
 });
 
-// Error handler global
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
     res.status(500).json({ 
@@ -126,36 +131,44 @@ app.listen(PORT, () => {
     console.log(`📍 URL: http://localhost:${PORT}`);
     console.log('');
     console.log('📊 Funcionalidades disponibles:');
-    console.log(`   ✅ Sistema de votación`);
-    console.log(`   ✅ Scraping de videos`);
+    console.log(`   ${votesRoutes ? '✅' : '❌'} Sistema de votación`);
+    console.log(`   ${videosRoutes ? '✅' : '❌'} Scraping de videos`);
     console.log(`   ${process.env.GROQ_API_KEY ? '✅' : '❌'} Trivial con IA`);
     console.log(`   ${process.env.GROQ_API_KEY ? '✅' : '❌'} Chat con Carnivalito`);
-    console.log(`   ✅ Gestión de APIs`);
+    console.log(`   ${adminApiKeysRoutes ? '✅' : '❌'} Gestión de APIs`);
     console.log('');
     console.log('🎯 Accesos rápidos:');
     console.log(`   🏠 Home: http://localhost:${PORT}/`);
     console.log(`   🎲 Trivial: http://localhost:${PORT}/trivia.html`);
     console.log(`   💬 Chat: http://localhost:${PORT}/chat.html`);
+    console.log(`   🔧 Admin: http://localhost:${PORT}/admin`);
     console.log('');
     if (!process.env.GROQ_API_KEY) {
         console.log('⚠️  ADVERTENCIA: GROQ_API_KEY no configurada');
         console.log('   El trivial y chat no funcionarán sin esta key');
-        console.log('   Obtén una gratis en: https://console.groq.com');
-        console.log('');
+        console.log('   Obtén una gratis en: https://console.groq.com\n');
     }
     console.log('🎉 ¡Sistema listo! ¡Que comience la fiesta! 🎭');
     console.log('============================================');
 });
 
-// Manejo de cierre graceful
-process.on('SIGTERM', () => {
-    console.log('📴 Señal SIGTERM recibida, cerrando servidor...');
-    db.close((err) => {
-        if (err) {
-            console.error('Error al cerrar la base de datos:', err);
-        }
-        process.exit(err ? 1 : 0);
-    });
-});
+// ============================================
+// MANEJO DE CIERRE GRACEFUL
+// ============================================
+
+const gracefulShutdown = () => {
+    console.log('📴 Señal recibida, cerrando servidor...');
+    if (db && db.close) {
+        db.close((err) => {
+            if (err) console.error('Error al cerrar la base de datos:', err);
+            process.exit(err ? 1 : 0);
+        });
+    } else {
+        process.exit(0);
+    }
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 module.exports = app;
