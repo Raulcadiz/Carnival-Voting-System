@@ -82,52 +82,40 @@ router.post('/chat', async (req, res) => {
 router.get('/trivia/topics', (req, res) => {
     const topics = [
         { 
-            id: 'historia-coac', 
-            name: 'Historia del COAC 🎭', 
+            id: 'carnaval-historia', 
+            name: 'Historia del Carnaval 🎭', 
             icon: '🎭',
-            description: 'Orígenes, evolución y momentos históricos'
-        },
-        { 
-            id: 'agrupaciones-legendarias', 
-            name: 'Agrupaciones Legendarias 👑', 
-            icon: '👑',
-            description: 'Los Millonarios, Los Carapapas, y más'
-        },
-        { 
-            id: 'autores-coac', 
-            name: 'Autores del COAC ✍️', 
-            icon: '✍️',
-            description: 'Martínez Ares, El Sheriff, Paco Alba...'
-        },
-        { 
-            id: 'letras-miticas', 
-            name: 'Letras Míticas 📜', 
-            icon: '📜',
-            description: 'Tipos, cuplés y pasodobles históricos'
-        },
-        { 
-            id: 'modalidades', 
-            name: 'Modalidades del COAC 🎪', 
-            icon: '🎪',
-            description: 'Chirigota, Comparsa, Cuarteto y Coro'
-        },
-        { 
-            id: 'anecdotas-coac', 
-            name: 'Anécdotas y Curiosidades 💡', 
-            icon: '💡',
-            description: 'Historias reales del Teatro Falla'
-        },
-        { 
-            id: 'premios-palmarés', 
-            name: 'Premios y Palmarés 🏆', 
-            icon: '🏆',
-            description: 'Ganadores históricos y récords'
+            description: 'Orígenes y tradiciones'
         },
         { 
             id: 'musica-carnaval', 
-            name: 'Música del Carnaval 🎵', 
+            name: 'Música de Carnaval 🎵', 
             icon: '🎵',
-            description: 'Tangos, pasodobles, cuplés'
+            description: 'Samba, murgas y comparsas'
+        },
+        { 
+            id: 'disfraces', 
+            name: 'Disfraces y Vestimenta 👗', 
+            icon: '👗',
+            description: 'Trajes típicos y máscaras'
+        },
+        { 
+            id: 'comida-carnaval', 
+            name: 'Gastronomía Festiva 🍰', 
+            icon: '🍰',
+            description: 'Dulces y platos típicos'
+        },
+        { 
+            id: 'carnavales-mundo', 
+            name: 'Carnavales del Mundo 🌎', 
+            icon: '🌎',
+            description: 'Río, Venecia, y más'
+        },
+        { 
+            id: 'cultura-popular', 
+            name: 'Cultura Pop 🎬', 
+            icon: '🎬',
+            description: 'Carnaval en cine y TV'
         }
     ];
 
